@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Runs `claude` (Claude Code) routed through OpenRouter's Anthropic-compatible
+# gateway instead of a direct Anthropic subscription/API key.
+#
+# CLAUDE_OR_API_KEY can be either a raw OpenRouter API key, or an `op://`
+# 1Password reference — in which case it's resolved via `op read` on every
+# run and never written to disk or exported outside this process's env.
+set -euo pipefail
+
+: "${CLAUDE_OR_API_KEY:=op://Employee/OpenRouter API Key - Claude Code/credential}"
+: "${CLAUDE_OR_OP_ACCOUNT:=tennaxia.1password.eu}"
+
+if [[ "$CLAUDE_OR_API_KEY" == op://* ]]; then
+  key="$(op read "$CLAUDE_OR_API_KEY" --account "$CLAUDE_OR_OP_ACCOUNT")"
+else
+  key="$CLAUDE_OR_API_KEY"
+fi
+
+export ANTHROPIC_BASE_URL="https://openrouter.ai/api"
+export ANTHROPIC_AUTH_TOKEN="$key"
+export ANTHROPIC_API_KEY=""
+export CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY=1
+
+exec claude "$@"
